@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Inscriptos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('fondo.png') center center / cover no-repeat;
+      opacity: 0.32;
+      z-index: -1;
+      pointer-events: none;
+    }
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+    /* Styles for the collapsible accordion functionality */
+    .details-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+    .collapsible.expanded .details-content {
+      max-height: 500px; /* Adjust if content is taller */
+    }
+    .collapsible.expanded .chevron {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body class="bg-[#f9f7f4] text-[#3f3f3f] transition-colors duration-300">
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+      <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+        <input id="search" type="text" placeholder="Buscar por nombre o apellido" class="border border-gray-300 rounded px-3 py-2 text-sm" />
+        <select id="checkinFilter" class="border border-gray-300 rounded px-3 py-2 text-sm">
+          <option value="all">Todos</option>
+          <option value="false">Sin Check-in</option>
+        </select>
+        <span id="filterNotice" class="text-sm text-gray-500 ml-2"></span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="downloadExcel()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">📥 Descargar Excel</button>
+        <button id="addBtn" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">➕ Agregar</button>
+      </div>
+    </div>
+
+    <div class="min-w-full text-sm">
+      <div class="hidden sm:flex text-[#b08d57] text-xs border-b border-[#ddd5c7] text-center font-bold">
+        <div class="py-2 sm:w-[5%] cursor-pointer" onclick="sortBy('id')"># ⬍</div>
+        <div class="py-2 sm:w-[20%] cursor-pointer text-left" onclick="sortBy('nombre')">NOMBRE ⬍</div>
+        <div class="py-2 sm:w-[20%] cursor-pointer text-left" onclick="sortBy('apellido')">APELLIDO ⬍</div>
+        <div class="py-2 sm:w-[15%]">TIPO ENTRADA</div>
+        <div class="py-2 sm:w-[10%]">MONTO</div>
+        <div class="py-2 sm:w-[15%]">FECHA REGISTRO</div>
+        <div class="py-2 sm:w-[5%]">CHECK-IN</div>
+        <div class="py-2 sm:w-[10%]">ACCIONES</div>
+      </div>
+      <div id="guestBody" class="text-gray-700"></div>
+    </div>
+  </div>
+
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
+    <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
+      <h3 id="modalTitle" class="text-lg font-semibold mb-4">Nuevo Inscripto</h3>
+      <div class="flex flex-col gap-3">
+        <input type="text" id="newNombre" placeholder="Nombre" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="text" id="newApellido" placeholder="Apellido" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="text" id="newEntrada" placeholder="Tipo Entrada" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="number" id="newMonto" placeholder="Monto" class="border border-gray-300 rounded px-3 py-2" />
+        <div class="flex justify-end gap-2 mt-4">
+          <button onclick="addGuest()" class="px-4 py-2 bg-[#b08d57] text-white rounded">Guardar</button>
+          <button onclick="hideModal()" class="px-4 py-2 border rounded">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let guests = JSON.parse(localStorage.getItem('guests') || '[]');
+    let sortKey = 'id';
+    let sortAsc = true;
+
+    function resetModalButton() {
+      const saveBtn = document.querySelector('#modal button');
+      saveBtn.textContent = 'Guardar';
+      saveBtn.onclick = addGuest;
+      document.getElementById('newNombre').value = '';
+      document.getElementById('newApellido').value = '';
+      document.getElementById('newEntrada').value = '';
+      document.getElementById('newMonto').value = '';
+    }
+
+    function showModal(title = 'Nuevo Inscripto') {
+      document.getElementById('modal').classList.remove('invisible');
+      document.getElementById('modalTitle').textContent = title;
+      resetModalButton();
+    }
+
+    document.getElementById('addBtn').addEventListener('click', function() {
+      showModal('Nuevo Inscripto');
+    });
+
+    function saveGuests() {
+      localStorage.setItem('guests', JSON.stringify(guests));
+    }
+
+    function renderGuests() {
+      const filterNotice = document.getElementById('filterNotice');
+      const searchValue = document.getElementById('search').value.trim();
+      filterNotice.textContent = searchValue ? `Filtrado por: ${searchValue}` : '';
+
+      const body = document.getElementById('guestBody');
+      const search = searchValue.toLowerCase();
+      const checkinFilter = document.getElementById('checkinFilter').value;
+
+      const filtered = guests.filter(g => {
+        const fullName = `${g.nombre} ${g.apellido}`;
+        const matchName = fullName.toLowerCase().includes(search);
+        const matchCheck = checkinFilter === 'all' || g.checkin.toString() === checkinFilter;
+        return matchName && matchCheck;
+      });
+
+      const sorted = filtered.sort((a, b) => {
+        if (a[sortKey] < b[sortKey]) return sortAsc ? -1 : 1;
+        if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      body.innerHTML = '';
+      sorted.forEach(g => {
+        const row = document.createElement('div');
+        row.className = `border-b border-[#ddd5c7] ${g.checkin ? 'bg-green-100' : 'bg-white/50'}`;
+        
+        row.innerHTML = `
+          <div class="collapsible">
+            <div class="flex items-center w-full text-center cursor-pointer sm:cursor-default" onclick="this.parentElement.classList.toggle('expanded')">
+              
+              <div class="p-4 flex justify-between items-center sm:hidden w-full">
+                <div>
+                  <p class="font-bold text-left">${g.nombre} ${g.apellido}</p>
+                  <p class="text-xs text-gray-500 text-left">#${g.id}</p>
+                </div>
+                <svg class="chevron w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+
+              <div class="hidden sm:flex sm:w-full sm:items-center text-sm">
+                <div class="py-3 sm:w-[5%]">${g.id}</div>
+                <div class="py-3 sm:w-[20%] text-left">${g.nombre}</div>
+                <div class="py-3 sm:w-[20%] text-left">${g.apellido}</div>
+                <div class="py-3 sm:w-[15%]">${g.entrada}</div>
+                <div class="py-3 sm:w-[10%]">$${g.monto}</div>
+                <div class="py-3 sm:w-[15%]">${g.fecha}</div>
+                <div class="py-3 sm:w-[5%]"><input type="checkbox" onchange="toggleCheckin(${g.id})" ${g.checkin ? 'checked' : ''}></div>
+                <div class="py-3 sm:w-[10%] flex justify-center gap-3">
+                  <button onclick="event.stopPropagation(); editGuest(${g.id})">✏️</button>
+                  <button onclick="event.stopPropagation(); deleteGuest(${g.id})">🗑️</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-content sm:hidden">
+              <div class="p-4 border-t border-gray-200 grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                <div><strong class="block text-xs text-gray-500">TIPO ENTRADA</strong> ${g.entrada}</div>
+                <div><strong class="block text-xs text-gray-500">MONTO</strong> $${g.monto}</div>
+                <div><strong class="block text-xs text-gray-500">FECHA REGISTRO</strong> ${g.fecha}</div>
+                <div>
+                  <strong class="block text-xs text-gray-500">CHECK-IN</strong>
+                  <input type="checkbox" onchange="toggleCheckin(${g.id})" ${g.checkin ? 'checked' : ''}>
+                </div>
+                <div class="col-span-2 pt-2">
+                  <strong class="block text-xs text-gray-500 mb-1">ACCIONES</strong>
+                  <button onclick="editGuest(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">✏️ Editar</button>
+                  <button onclick="deleteGuest(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs">🗑️ Borrar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    function sortBy(key) {
+      if (sortKey === key) {
+        sortAsc = !sortAsc;
+      } else {
+        sortKey = key;
+        sortAsc = true;
+      }
+      renderGuests();
+    }
+
+    function hideModal() {
+      document.getElementById('modal').classList.add('invisible');
+    }
+
+    function addGuest() {
+      const nombre = document.getElementById('newNombre').value.trim();
+      const apellido = document.getElementById('newApellido').value.trim();
+      const entrada = document.getElementById('newEntrada').value.trim();
+      const monto = parseFloat(document.getElementById('newMonto').value) || 0;
+
+      if (!nombre || !apellido) {
+        alert('Nombre y Apellido son obligatorios.');
+        return;
+      }
+
+      guests.push({
+        id: guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1,
+        nombre,
+        apellido,
+        entrada: entrada || 'General',
+        monto,
+        fecha: new Date().toLocaleDateString(),
+        checkin: false
+      });
+      saveGuests();
+      hideModal();
+      renderGuests();
+    }
+
+    function editGuest(id) {
+      const guest = guests.find(g => g.id === id);
+      if (!guest) return;
+
+      document.getElementById('newNombre').value = guest.nombre;
+      document.getElementById('newApellido').value = guest.apellido;
+      document.getElementById('newEntrada').value = guest.entrada;
+      document.getElementById('newMonto').value = guest.monto;
+
+      showModal('Editar Inscripto');
+
+      const saveBtn = document.querySelector('#modal button[onclick^="addGuest"]');
+      saveBtn.textContent = 'Actualizar';
+      saveBtn.onclick = function() {
+        guest.nombre = document.getElementById('newNombre').value.trim();
+        guest.apellido = document.getElementById('newApellido').value.trim();
+        guest.entrada = document.getElementById('newEntrada').value.trim();
+        guest.monto = parseFloat(document.getElementById('newMonto').value) || 0;
+        saveGuests();
+        hideModal();
+        renderGuests();
+        resetModalButton(); // Reset button for next "Add" click
+      };
+    }
+
+    function deleteGuest(id) {
+      if (confirm('¿Estás seguro de que quieres eliminar a este inscripto?')) {
+        guests = guests.filter(g => g.id !== id);
+        // No need to re-index IDs, as it can cause issues. It's better to have non-sequential IDs.
+        saveGuests();
+        renderGuests();
+      }
+    }
+
+    function toggleCheckin(id) {
+      const guest = guests.find(g => g.id === id);
+      if (guest) {
+        guest.checkin = !guest.checkin;
+      }
+      saveGuests();
+      renderGuests();
+    }
+
+    function downloadExcel() {
+      let csvContent = 'ID,Nombre,Apellido,Tipo Entrada,Monto,Fecha Registro,Check-in\n';
+      guests.forEach(g => {
+        const row = [g.id, g.nombre, g.apellido, g.entrada, g.monto, g.fecha, g.checkin].join(',');
+        csvContent += row + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'inscriptos.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.getElementById('search').addEventListener('input', renderGuests);
+    document.getElementById('checkinFilter').addEventListener('change', renderGuests);
+    window.addEventListener('load', renderGuests);
+  </script>
+</body>
+</html>
