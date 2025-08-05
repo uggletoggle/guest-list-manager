@@ -54,17 +54,17 @@
     </div>
 
     <div class="min-w-full text-sm">
-      <div class="hidden sm:flex text-[#b08d57] text-xs border-b border-[#ddd5c7] text-center font-bold">
-        <div class="py-2 sm:w-[5%] cursor-pointer" onclick="sortBy('id')"># ⬍</div>
-        <div class="py-2 sm:w-[20%] cursor-pointer text-left" onclick="sortBy('nombre')">NOMBRE ⬍</div>
-        <div class="py-2 sm:w-[20%] cursor-pointer text-left" onclick="sortBy('apellido')">APELLIDO ⬍</div>
-        <div class="py-2 sm:w-[15%]">TIPO ENTRADA</div>
-        <div class="py-2 sm:w-[10%]">MONTO</div>
-        <div class="py-2 sm:w-[15%]">FECHA REGISTRO</div>
-        <div class="py-2 sm:w-[5%]">CHECK-IN</div>
-        <div class="py-2 sm:w-[10%]">ACCIONES</div>
-      </div>
-      <div id="guestBody" class="text-gray-700"></div>
+        <div class="hidden sm:flex text-[#b08d57] text-xs border-b border-[#ddd5c7] text-center font-bold">
+            <div class="py-2 sm:w-[5%] cursor-pointer" onclick="sortBy('id')"># ⬍</div>
+            <div class="py-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('nombre')">NOMBRE ⬍</div>
+            <div class="py-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('apellido')">APELLIDO ⬍</div>
+            <div class="py-2 sm:w-[15%]">TIPO ENTRADA</div>
+            <div class="py-2 sm:w-[10%]">MONTO</div>
+            <div class="py-2 sm:w-[15%]">FECHA REGISTRO</div>
+            <div class="py-2 sm:w-[5%]">CHECK-IN</div>
+            <div class="py-2 sm:w-[14%]">ACCIONES</div>
+        </div>
+        <div id="guestBody" class="text-gray-700"></div>
     </div>
   </div>
 
@@ -140,6 +140,16 @@
         const row = document.createElement('div');
         row.className = `border-b border-[#ddd5c7] ${g.checkin ? 'bg-green-100' : 'bg-white/50'}`;
         
+        // --- INICIO: Lógica de botones de acción ---
+        const receiptButtonDesktop = g.comprobante
+            ? `<button title="Ver Comprobante" onclick="event.stopPropagation(); viewReceipt(${g.id})">📄</button>`
+            : `<button title="Cargar Comprobante" onclick="event.stopPropagation(); uploadReceipt(${g.id})">📎</button>`;
+        
+        const receiptButtonMobile = g.comprobante
+            ? `<button onclick="viewReceipt(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">📄 Ver</button>`
+            : `<button onclick="uploadReceipt(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">📎 Cargar</button>`;
+        // --- FIN: Lógica de botones de acción ---
+
         row.innerHTML = `
           <div class="collapsible">
             <div class="flex items-center w-full text-center cursor-pointer sm:cursor-default" onclick="this.parentElement.classList.toggle('expanded')">
@@ -154,15 +164,16 @@
 
               <div class="hidden sm:flex sm:w-full sm:items-center text-sm">
                 <div class="py-3 sm:w-[5%]">${g.id}</div>
-                <div class="py-3 sm:w-[20%] text-left">${g.nombre}</div>
-                <div class="py-3 sm:w-[20%] text-left">${g.apellido}</div>
+                <div class="py-3 sm:w-[18%] text-left">${g.nombre}</div>
+                <div class="py-3 sm:w-[18%] text-left">${g.apellido}</div>
                 <div class="py-3 sm:w-[15%]">${g.entrada}</div>
                 <div class="py-3 sm:w-[10%]">$${g.monto}</div>
                 <div class="py-3 sm:w-[15%]">${g.fecha}</div>
                 <div class="py-3 sm:w-[5%]"><input type="checkbox" onchange="toggleCheckin(${g.id})" ${g.checkin ? 'checked' : ''}></div>
-                <div class="py-3 sm:w-[10%] flex justify-center gap-3">
-                  <button onclick="event.stopPropagation(); editGuest(${g.id})">✏️</button>
-                  <button onclick="event.stopPropagation(); deleteGuest(${g.id})">🗑️</button>
+                <div class="py-3 sm:w-[14%] flex justify-center gap-4">
+                  ${receiptButtonDesktop}
+                  <button title="Editar" onclick="event.stopPropagation(); editGuest(${g.id})">✏️</button>
+                  <button title="Borrar" onclick="event.stopPropagation(); deleteGuest(${g.id})">🗑️</button>
                 </div>
               </div>
             </div>
@@ -178,6 +189,7 @@
                 </div>
                 <div class="col-span-2 pt-2">
                   <strong class="block text-xs text-gray-500 mb-1">ACCIONES</strong>
+                  ${receiptButtonMobile}
                   <button onclick="editGuest(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">✏️ Editar</button>
                   <button onclick="deleteGuest(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs">🗑️ Borrar</button>
                 </div>
@@ -221,12 +233,58 @@
         entrada: entrada || 'General',
         monto,
         fecha: new Date().toLocaleDateString(),
-        checkin: false
+        checkin: false,
+        comprobante: null // --- NUEVO: Inicializar comprobante ---
       });
       saveGuests();
       hideModal();
       renderGuests();
     }
+
+    // --- INICIO: NUEVAS FUNCIONES PARA COMPROBANTES ---
+    function uploadReceipt(id) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*'; // Aceptar solo archivos de imagen
+        
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor, selecciona un archivo de imagen válido.');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) { // Límite de 5MB
+                alert('La imagen no debe exceder los 5MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = readerEvent => {
+                const guest = guests.find(g => g.id === id);
+                if (guest) {
+                    guest.comprobante = readerEvent.target.result; // Guardar imagen como Base64
+                    saveGuests();
+                    renderGuests(); // Actualizar la vista para cambiar el botón
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        input.click(); // Abrir el diálogo para seleccionar archivo
+    }
+
+    function viewReceipt(id) {
+        const guest = guests.find(g => g.id === id);
+        if (guest && guest.comprobante) {
+            const newWindow = window.open();
+            newWindow.document.write(`<img src="${guest.comprobante}" style="max-width:100%;">`);
+        }
+    }
+    // --- FIN: NUEVAS FUNCIONES PARA COMPROBANTES ---
+
 
     function editGuest(id) {
       const guest = guests.find(g => g.id === id);
@@ -249,14 +307,13 @@
         saveGuests();
         hideModal();
         renderGuests();
-        resetModalButton(); // Reset button for next "Add" click
+        resetModalButton();
       };
     }
 
     function deleteGuest(id) {
       if (confirm('¿Estás seguro de que quieres eliminar a este inscripto?')) {
         guests = guests.filter(g => g.id !== id);
-        // No need to re-index IDs, as it can cause issues. It's better to have non-sequential IDs.
         saveGuests();
         renderGuests();
       }
@@ -272,9 +329,13 @@
     }
 
     function downloadExcel() {
-      let csvContent = 'ID,Nombre,Apellido,Tipo Entrada,Monto,Fecha Registro,Check-in\n';
+      // --- MODIFICADO: Añadir columna "Comprobante" al CSV ---
+      let csvContent = 'ID,Nombre,Apellido,Tipo Entrada,Monto,Fecha Registro,Check-in,Comprobante\n';
       guests.forEach(g => {
-        const row = [g.id, g.nombre, g.apellido, g.entrada, g.monto, g.fecha, g.checkin].join(',');
+        const row = [
+            g.id, g.nombre, g.apellido, g.entrada, g.monto, g.fecha, g.checkin,
+            g.comprobante ? 'Si' : 'No'
+        ].join(',');
         csvContent += row + '\n';
       });
 
