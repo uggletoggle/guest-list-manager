@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Inscriptos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#f9f7f4] text-[#3f3f3f] transition-colors duration-300">
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+      <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+        <input id="search" type="text" placeholder="Buscar por nombre o apellido" class="border border-gray-300 rounded px-3 py-2 text-sm" />
+        <select id="checkinFilter" class="border border-gray-300 rounded px-3 py-2 text-sm">
+          <option value="all">Todos</option>
+          <option value="false">Sin Check-in</option>
+        </select>
+        <button onclick="toggleDarkMode()" class="px-3 py-2 rounded bg-white border border-gray-300 shadow-sm text-sm">🌓 Modo</button>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="downloadExcel()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">📥 Descargar Excel</button>
+        <button onclick="showModal()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">➕ Agregar</button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm border-collapse">
+        <thead>
+          <tr class="text-[#b08d57] text-xs border-b border-[#ddd5c7]">
+            <th class="cursor-pointer py-2" onclick="sortBy('id')"># ⬍</th>
+            <th class="cursor-pointer py-2" onclick="sortBy('nombre')">Nombre ⬍</th>
+            <th class="cursor-pointer py-2" onclick="sortBy('apellido')">Apellido ⬍</th>
+            <th class="py-2">Tipo Entrada</th>
+            <th class="py-2">Monto</th>
+            <th class="py-2">Fecha Registro</th>
+            <th class="py-2">Check-in</th>
+            <th class="py-2">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="guestBody" class="text-center text-gray-700"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
+    <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
+      <h3 id="modalTitle" class="text-lg font-semibold mb-4">Nuevo Inscripto</h3>
+      <div class="flex flex-col gap-3">
+        <input type="text" id="newNombre" placeholder="Nombre" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="text" id="newApellido" placeholder="Apellido" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="text" id="newEntrada" placeholder="Tipo Entrada" class="border border-gray-300 rounded px-3 py-2" />
+        <input type="number" id="newMonto" placeholder="Monto" class="border border-gray-300 rounded px-3 py-2" />
+        <div class="flex justify-end gap-2 mt-4">
+          <button onclick="addGuest()" class="px-4 py-2 bg-[#b08d57] text-white rounded">Guardar</button>
+          <button onclick="hideModal()" class="px-4 py-2 border rounded">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let guests = JSON.parse(localStorage.getItem('guests') || '[]');
+    let sortKey = 'id';
+    let sortAsc = true;
+
+    function resetModalButton() {
+      const saveBtn = document.querySelector('#modal button');
+      saveBtn.textContent = 'Guardar';
+      saveBtn.onclick = addGuest;
+      document.getElementById('newNombre').value = '';
+      document.getElementById('newApellido').value = '';
+      document.getElementById('newEntrada').value = '';
+      document.getElementById('newMonto').value = '';
+    }
+
+    function showModal(title = 'Nuevo Inscripto') {
+      document.getElementById('modal').classList.remove('invisible');
+      document.getElementById('modalTitle').textContent = title;
+      resetModalButton();
+    }
+
+    function saveGuests() {
+      localStorage.setItem('guests', JSON.stringify(guests));
+    }
+
+    function renderGuests() {
+      const body = document.getElementById('guestBody');
+      const search = document.getElementById('search').value.toLowerCase();
+      const checkinFilter = document.getElementById('checkinFilter').value;
+
+      const filtered = guests.filter(g => {
+        const matchName = g.nombre.toLowerCase().includes(search) || g.apellido.toLowerCase().includes(search);
+        const matchCheck = checkinFilter === 'all' || g.checkin.toString() === checkinFilter;
+        return matchName && matchCheck;
+      });
+
+      const sorted = filtered.sort((a, b) => {
+        if (a[sortKey] < b[sortKey]) return sortAsc ? -1 : 1;
+        if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      body.innerHTML = '';
+      sorted.forEach((g, index) => {
+        const row = document.createElement('tr');
+        if (g.checkin) row.classList.add('bg-green-100');
+        row.innerHTML = `
+          <td>${g.id}</td>
+          <td>${g.nombre}</td>
+          <td>${g.apellido}</td>
+          <td>${g.entrada}</td>
+          <td>${g.monto}</td>
+          <td>${g.fecha}</td>
+          <td><input type="checkbox" onchange="toggleCheckin(${g.id})" ${g.checkin ? 'checked' : ''}></td>
+          <td>
+            <button onclick="editGuest(${g.id})">✏️</button>
+            <button onclick="deleteGuest(${g.id})">🗑️</button>
+          </td>`;
+        body.appendChild(row);
+      });
+    }
+
+    function sortBy(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else {
+        sortKey = key;
+        sortAsc = true;
+      }
+      renderGuests();
+    }
+
+    function hideModal() {
+      document.getElementById('modal').classList.add('invisible');
+    }
+
+    function addGuest() {
+      const nombre = document.getElementById('newNombre').value;
+      const apellido = document.getElementById('newApellido').value;
+      const entrada = document.getElementById('newEntrada').value;
+      const monto = parseFloat(document.getElementById('newMonto').value);
+
+      guests.push({
+        id: guests.length + 1,
+        nombre,
+        apellido,
+        entrada,
+        monto,
+        fecha: new Date().toLocaleDateString(),
+        checkin: false
+      });
+      saveGuests();
+      hideModal();
+      renderGuests();
+    }
+
+    function editGuest(id) {
+      const guest = guests.find(g => g.id === id);
+      if (!guest) return;
+
+      document.getElementById('newNombre').value = guest.nombre;
+      document.getElementById('newApellido').value = guest.apellido;
+      document.getElementById('newEntrada').value = guest.entrada;
+      document.getElementById('newMonto').value = guest.monto;
+
+      showModal('Editar Inscripto');
+
+      const saveBtn = document.querySelector('#modal button[onclick^="addGuest"]');
+      saveBtn.textContent = 'Actualizar';
+      saveBtn.onclick = function () {
+        guest.nombre = document.getElementById('newNombre').value;
+        guest.apellido = document.getElementById('newApellido').value;
+        guest.entrada = document.getElementById('newEntrada').value;
+        guest.monto = parseFloat(document.getElementById('newMonto').value);
+        saveGuests();
+        hideModal();
+        renderGuests();
+        resetModalButton();
+      };
+    }
+
+    function deleteGuest(id) {
+      guests = guests.filter(g => g.id !== id);
+      guests.forEach((g, i) => g.id = i + 1);
+      saveGuests();
+      renderGuests();
+    }
+
+    function toggleCheckin(id) {
+      const guest = guests.find(g => g.id === id);
+      if (guest) guest.checkin = !guest.checkin;
+      saveGuests();
+      renderGuests();
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    function downloadExcel() {
+      let csv = 'ID,Nombre,Apellido,Tipo Entrada,Monto,Fecha,Check-in\n';
+      guests.forEach(g => {
+        csv += `${g.id},${g.nombre},${g.apellido},${g.entrada},${g.monto},${g.fecha},${g.checkin}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'invitados.csv');
+      link.click();
+    }
+
+    document.getElementById('search').addEventListener('input', renderGuests);
+    document.getElementById('checkinFilter').addEventListener('change', renderGuests);
+    window.addEventListener('load', renderGuests);
+  </script>
+</body>
+</html>
