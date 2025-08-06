@@ -14,8 +14,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: url('fondo.png') center center / cover no-repeat;
-      opacity: 0.32;
+      background: url('https://images.unsplash.com/photo-1556745753-b2904692b3cd?q=80&w=1973&auto=format&fit=crop') center center / cover no-repeat;
+      opacity: 0.15;
       z-index: -1;
       pointer-events: none;
     }
@@ -28,6 +28,7 @@
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.3s ease-in-out;
+      background-color: rgba(255, 255, 255, 0.7);
     }
     .collapsible.expanded .details-content {
       max-height: 500px; /* Adjust if content is taller */
@@ -36,18 +37,17 @@
       transform: rotate(180deg);
     }
     .loader {
-    border: 6px solid #f3f3f3; /* Gris claro */
-    border-top: 6px solid #b08d57; /* Color principal */
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+      border: 6px solid #f3f3f3; /* Gris claro */
+      border-top: 6px solid #b08d57; /* Color principal */
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="bg-[#f9f7f4] text-[#3f3f3f] transition-colors duration-300">
@@ -58,30 +58,45 @@
         <select id="checkinFilter" class="border border-gray-300 rounded px-3 py-2 text-sm">
           <option value="all">Todos</option>
           <option value="false">Sin Check-in</option>
+          <option value="true">Con Check-in</option>
         </select>
-        <span id="filterNotice" class="text-sm text-gray-500 ml-2"></span>
+        <!-- Mobile Sorting Dropdown -->
+        <select id="sortFilter" class="border border-gray-300 rounded px-3 py-2 text-sm block sm:hidden mt-2 w-full">
+            <option value="numero_lista-asc">Ordenar por: N° (Asc)</option>
+            <option value="numero_lista-desc">Ordenar por: N° (Desc)</option>
+            <option value="nombre-asc">Ordenar por: Nombre (A-Z)</option>
+            <option value="nombre-desc">Ordenar por: Nombre (Z-A)</option>
+            <option value="apellido-asc">Ordenar por: Apellido (A-Z)</option>
+            <option value="apellido-desc">Ordenar por: Apellido (Z-A)</option>
+        </select>
       </div>
       <div class="flex gap-2">
-        <button onclick="downloadExcel()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">📥 Descargar Excel</button>
-        <button id="addBtn" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow">➕ Agregar</button>
+        <button onclick="downloadExcel()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow hover:bg-[#9a7945] transition-colors">📥 Descargar Excel</button>
+        <button id="addBtn" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow hover:bg-[#9a7945] transition-colors">➕ Agregar</button>
       </div>
     </div>
 
-    <div class="min-w-full text-sm">
-        <div class="hidden sm:flex text-[#b08d57] text-xs border-b border-[#ddd5c7] text-center font-bold">
-            <div class="py-2 sm:w-[5%]" onclick="sortBy('numero_lista')">N° ⬍</div>
-            <div class="py-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('nombre')">NOMBRE ⬍</div>
-            <div class="py-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('apellido')">APELLIDO ⬍</div>
-            <div class="py-2 sm:w-[15%]">TIPO ENTRADA</div>
-            <div class="py-2 sm:w-[10%]">MONTO</div>
-            <div class="py-2 sm:w-[15%]">FECHA REGISTRO</div>
-            <div class="py-2 sm:w-[5%]">CHECK-IN</div>
-            <div class="py-2 sm:w-[14%]">ACCIONES</div>
+    <!-- Stats Display -->
+    <div class="flex justify-between items-center mb-2">
+        <div id="stats" class="text-sm text-gray-600"></div>
+    </div>
+
+    <div class="min-w-full text-sm shadow-md rounded-lg overflow-hidden">
+        <div class="hidden sm:flex text-[#b08d57] bg-white/80 text-xs border-b border-[#ddd5c7] text-center font-bold">
+            <div class="py-2 px-2 sm:w-[5%] cursor-pointer" onclick="sortBy('numero_lista')">N° ⬍</div>
+            <div class="py-2 px-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('nombre')">NOMBRE ⬍</div>
+            <div class="py-2 px-2 sm:w-[18%] cursor-pointer text-left" onclick="sortBy('apellido')">APELLIDO ⬍</div>
+            <div class="py-2 px-2 sm:w-[15%]">TIPO ENTRADA</div>
+            <div class="py-2 px-2 sm:w-[10%]">MONTO</div>
+            <div class="py-2 px-2 sm:w-[15%]">FECHA REGISTRO</div>
+            <div class="py-2 px-2 sm:w-[5%]">CHECK-IN</div>
+            <div class="py-2 px-2 sm:w-[14%]">ACCIONES</div>
         </div>
         <div id="guestBody" class="text-gray-700"></div>
     </div>
   </div>
 
+  <!-- Add/Edit Modal -->
   <div id="modal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
     <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
       <h3 id="modalTitle" class="text-lg font-semibold mb-4">Nuevo Inscripto</h3>
@@ -91,341 +106,434 @@
         <input type="text" id="newEntrada" placeholder="Tipo Entrada" class="border border-gray-300 rounded px-3 py-2" />
         <input type="number" id="newMonto" placeholder="Monto" class="border border-gray-300 rounded px-3 py-2" />
         <div class="flex justify-end gap-2 mt-4">
-          <button onclick="addGuest()" class="px-4 py-2 bg-[#b08d57] text-white rounded">Guardar</button>
+          <button id="saveBtn" class="px-4 py-2 bg-[#b08d57] text-white rounded">Guardar</button>
           <button onclick="hideModal()" class="px-4 py-2 border rounded">Cancelar</button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
+    <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-sm text-center">
+        <h3 id="confirmTitle" class="text-lg font-semibold mb-2">Confirmar Acción</h3>
+        <p id="confirmMessage" class="text-sm text-gray-600 mb-6">¿Estás seguro?</p>
+        <div class="flex justify-center gap-4">
+            <button id="cancelBtn" class="px-5 py-2 border rounded">Cancelar</button>
+            <button id="confirmBtn" class="px-5 py-2 bg-red-600 text-white rounded">Confirmar</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Loader Overlay -->
   <div id="loader-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[100] hidden">
-  <div class="loader"></div>
+    <div class="loader"></div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://bduenhilcuxbevnhwsnj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkdWVuaGlsY3V4YmV2bmh3c25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzUzMjYsImV4cCI6MjA2OTk1MTMyNn0.Xu_Y9c4FzkTaU6rW02veEVvsSX7396Zj3ArxV69ZrDE';
-
     const clientSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let guests = JSON.parse(localStorage.getItem('guests') || '[]');
-    let sortKey = 'id';
-    let sortAsc = true;
+    // --- Global state for sorting ---
+    let currentSortKey = 'numero_lista';
+    let currentSortAsc = true;
+    let allGuests = []; // Cache for all guests to avoid re-fetching
 
-    function resetModalButton() {
-      const saveBtn = document.querySelector('#modal button');
-      saveBtn.textContent = 'Guardar';
-      saveBtn.onclick = addGuest;
+    // --- Loader and Modal Functions ---
+    function showLoader() { document.getElementById('loader-overlay').classList.remove('hidden'); }
+    function hideLoader() { document.getElementById('loader-overlay').classList.add('hidden'); }
+    function hideModal() { document.getElementById('modal').classList.add('invisible'); }
+    function hideConfirmModal() { document.getElementById('confirmModal').classList.add('invisible'); }
+    
+    function showModal(title = 'Nuevo Inscripto') {
+      document.getElementById('modal').classList.remove('invisible');
+      document.getElementById('modalTitle').textContent = title;
+      // Reset form fields
       document.getElementById('newNombre').value = '';
       document.getElementById('newApellido').value = '';
       document.getElementById('newEntrada').value = '';
       document.getElementById('newMonto').value = '';
     }
 
-    function showModal(title = 'Nuevo Inscripto') {
-      document.getElementById('modal').classList.remove('invisible');
-      document.getElementById('modalTitle').textContent = title;
-      resetModalButton();
-    }
+    function showConfirmModal(message, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('confirmMessage').textContent = message;
+        modal.classList.remove('invisible');
 
-    document.getElementById('addBtn').addEventListener('click', function() {
-      showModal('Nuevo Inscripto');
-    });
+        const confirmBtn = document.getElementById('confirmBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
 
-    function saveGuests() {
-      localStorage.setItem('guests', JSON.stringify(guests));
-    }
-
-    async function reordenarNumerosLista() {
-    // 1. Obtener todos los inscriptos, ordenados por fecha de creación.
-    const { data: inscriptos, error } = await clientSupabase
-        .from('inscriptos')
-        .select('id')
-        .order('created_at', { ascending: true });
-
-    if (error) {
-        console.error("Error al obtener lista para reordenar:", error);
-        return;
-    }
-
-    // 2. Preparar los datos para la actualización masiva.
-    const actualizaciones = inscriptos.map((inscripto, index) => ({
-        id: inscripto.id,
-        numero_lista: index + 1 // Asigna el nuevo número de lista correlativo
-    }));
-
-    // 3. Ejecutar la actualización masiva (upsert).
-    const { error: updateError } = await clientSupabase
-        .from('inscriptos')
-        .upsert(actualizaciones);
-
-    if (updateError) {
-        console.error("Error al actualizar números de lista:", updateError);
-    }
-}
-
-function showLoader() {
-  document.getElementById('loader-overlay').classList.remove('hidden');
-}
-
-function hideLoader() {
-  document.getElementById('loader-overlay').classList.add('hidden');
-}
-    // La función principal se vuelve asíncrona
-async function renderGuests() {
-    // 1. Obtiene los datos de Supabase, ordenados para una lista consistente.
-    const { data: inscriptos, error } = await clientSupabase
-        .from('inscriptos')
-        .select('*')
-        .order('created_at', { ascending: true }); // Ordenamos por fecha de creación.
-
-    if (error) {
-        console.error('Error cargando inscriptos:', error);
-        return;
-    }
-
-    // 2. Filtra los datos como antes.
-    const search = document.getElementById('search').value.trim().toLowerCase();
-    const checkinFilter = document.getElementById('checkinFilter').value;
-
-    const filtered = inscriptos.filter(g => {
-        const fullName = `${g.nombre || ''} ${g.apellido || ''}`;
-        const matchName = fullName.toLowerCase().includes(search);
-        const matchCheck = checkinFilter === 'all' || String(g.checkin) === checkinFilter;
-        return matchName && matchCheck;
-    });
-
-    // 3. Renderiza el HTML.
-    const body = document.getElementById('guestBody');
-    body.innerHTML = ''; 
-
-    filtered.forEach((g, index) => {
-        // --- ¡LA MAGIA ESTÁ AQUÍ! ---
-        // Se calcula el número de lista usando el índice del array.
-        // Se suma 1 porque los índices de los arrays empiezan en 0.
-        const numeroDeLista = index + 1;
-        // -----------------------------
-
-        const row = document.createElement('div');
-        row.className = `border-b border-[#ddd5c7] ${g.checkin ? 'bg-green-100' : 'bg-white/50'}`;
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
         
-        const registrationDate = new Date(g.created_at).toLocaleDateString();
+        newConfirmBtn.addEventListener('click', () => {
+            hideConfirmModal();
+            onConfirm();
+        });
 
-        // Los botones de acción siguen usando el 'g.id' real y permanente.
-        const receiptButtonDesktop = g.comprobante_url ? `<button title="Ver Comprobante" onclick="event.stopPropagation(); viewReceipt('${g.comprobante_url}')">📄</button>` : `<button title="Cargar Comprobante" onclick="event.stopPropagation(); uploadReceipt(${g.id})">📎</button>`;
-        const receiptButtonMobile = g.comprobante_url ? `<button onclick="viewReceipt('${g.comprobante_url}')" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">📄 Ver</button>` : `<button onclick="uploadReceipt(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs mr-2">📎 Cargar</button>`;
-
-        row.innerHTML = `
-          <div class="collapsible">
-            <div class="flex items-center w-full text-center cursor-pointer sm:cursor-default" onclick="this.parentElement.classList.toggle('expanded')">
-              <div class="p-4 flex justify-between items-center sm:hidden w-full">
-                <div>
-                  <p class="font-bold text-left">${g.nombre} ${g.apellido}</p>
-                  <p class="text-xs text-gray-500 text-left">N° ${numeroDeLista}</p>
-                </div>
-                <svg class="chevron w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
-              <div class="hidden sm:flex sm:w-full sm:items-center text-sm">
-                <div class="py-3 sm:w-[5%]">${numeroDeLista}</div>
-                <div class="py-3 sm:w-[18%] text-left">${g.nombre}</div>
-                <div class="py-3 sm:w-[18%] text-left">${g.apellido}</div>
-                <div class="py-3 sm:w-[15%]">${g.entrada}</div>
-                <div class="py-3 sm:w-[10%]">$${g.monto}</div>
-                <div class="py-3 sm:w-[15%]">${registrationDate}</div>
-                <div class="py-3 sm:w-[5%]"><input type="checkbox" onchange="toggleCheckin(${g.id}, ${g.checkin})" ${g.checkin ? 'checked' : ''}></div>
-                <div class="py-3 sm:w-[14%] flex justify-center gap-4">
-                  ${receiptButtonDesktop}
-                  <button title="Editar" onclick="event.stopPropagation(); editGuest(${g.id})">✏️</button>
-                  <button title="Borrar" onclick="event.stopPropagation(); deleteGuest(${g.id})">🗑️</button>
-                </div>
-              </div>
-            </div>
-            </div>
-        `;
-        body.appendChild(row);
-    });
-}
-    function hideModal() {
-      document.getElementById('modal').classList.add('invisible');
+        cancelBtn.onclick = hideConfirmModal;
     }
 
-async function addGuest() {
-    // Obtiene los datos del formulario modal.
-    const newGuestData = {
-        nombre: document.getElementById('newNombre').value.trim(),
-        apellido: document.getElementById('newApellido').value.trim(),
-        entrada: document.getElementById('newEntrada').value.trim() || 'General',
-        monto: parseFloat(document.getElementById('newMonto').value) || 0,
-        checkin: false
-    };
-
-    // Validación simple para asegurar que los campos principales no estén vacíos.
-    if (!newGuestData.nombre || !newGuestData.apellido) {
-        alert('El nombre y el apellido son obligatorios.');
-        return;
+    // --- Sorting Functions ---
+    function sortBy(key) {
+        if (currentSortKey === key) {
+            currentSortAsc = !currentSortAsc;
+        } else {
+            currentSortKey = key;
+            currentSortAsc = true;
+        }
+        renderGuests(false); // Re-render without fetching
+    }
+    
+    function applyMobileSort() {
+        const select = document.getElementById('sortFilter');
+        const [key, direction] = select.value.split('-');
+        
+        currentSortKey = key;
+        currentSortAsc = direction === 'asc';
+        
+        renderGuests(false); // Re-render without fetching
     }
 
-    showLoader(); // Muestra el indicador de carga.
+    /**
+     * Fetches all guests, orders them by creation date, and updates their 'numero_lista' field in the database.
+     * This ensures the list number is always sequential and stable.
+     */
+    async function reordenarNumerosLista() {
+        const { data: inscriptos, error } = await clientSupabase
+            .from('inscriptos')
+            .select('id')
+            .order('created_at', { ascending: true });
 
-    try {
-        // Inserta el nuevo registro en la tabla 'inscriptos'.
-        const { error } = await clientSupabase.from('inscriptos').insert(newGuestData);
-
-        // Si Supabase devuelve un error, lo lanzamos para que lo capture el 'catch'.
         if (error) {
-            throw error;
+            console.error("Error fetching list to reorder:", error);
+            return;
         }
 
-        // Si todo fue exitoso, oculta el modal y refresca la lista.
-        hideModal();
-        renderGuests();
+        const actualizaciones = inscriptos.map((inscripto, index) => ({
+            id: inscripto.id,
+            numero_lista: index + 1
+        }));
 
-    } catch (error) {
-        // Si ocurre cualquier error en el bloque 'try', lo muestra en la consola y alerta al usuario.
-        console.error("Error al agregar inscripto:", error);
-        alert("No se pudo agregar el inscripto: " + error.message);
-    } finally {
-        // Este bloque SIEMPRE se ejecuta, asegurando que el loader se oculte.
-        hideLoader();
-    }
-}
-    async function uploadReceipt(id) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
+        if (actualizaciones.length > 0) {
+            const { error: updateError } = await clientSupabase
+                .from('inscriptos')
+                .upsert(actualizaciones);
 
-      input.onchange = async e => {
-          const file = e.target.files[0];
-          if (!file) return;
-
-          // Inicia el proceso, muestra el loader
-          showLoader();
-
-          try {
-              const cleanFileName = file.name.replace(/\s/g, '_');
-              const filePath = `public/${id}-${cleanFileName}`;
-
-              // 1. Subir el archivo
-              const { data: uploadData, error: uploadError } = await clientSupabase.storage
-                  .from('comprobantes')
-                  .upload(filePath, file);
-
-              if (uploadError) {
-                  // Si hay un error, lo lanzamos para que lo capture el 'catch'
-                  throw uploadError;
-              }
-
-              // 2. Obtener la URL pública
-              const { data: urlData } = clientSupabase.storage
-                  .from('comprobantes')
-                  .getPublicUrl(uploadData.path);
-
-              // 3. Actualizar la base de datos
-              const { error: updateError } = await clientSupabase
-                  .from('inscriptos')
-                  .update({ comprobante_url: urlData.publicUrl })
-                  .eq('id', id);
-
-              if (updateError) {
-                  throw updateError;
-              }
-
-              // Si todo fue exitoso, refresca la lista
-              renderGuests();
-
-          } catch (error) {
-              // Si ocurre cualquier error en el bloque 'try', muéstralo
-              console.error("Error en el proceso de subida:", error);
-              alert("Hubo un error al subir el comprobante. Revisa la consola.");
-          } finally {
-              // El bloque 'finally' SIEMPRE se ejecuta, sin importar si hubo éxito o error.
-              // Es el lugar perfecto para ocultar el loader.
-              hideLoader();
-          }
-      };
-
-      input.click();
-}
-
-function viewReceipt(url) {
-    window.open(url, '_blank');
-}
-
-
-    function editGuest(id) {
-      const guest = guests.find(g => g.id === id);
-      if (!guest) return;
-
-      document.getElementById('newNombre').value = guest.nombre;
-      document.getElementById('newApellido').value = guest.apellido;
-      document.getElementById('newEntrada').value = guest.entrada;
-      document.getElementById('newMonto').value = guest.monto;
-
-      showModal('Editar Inscripto');
-
-      const saveBtn = document.querySelector('#modal button[onclick^="addGuest"]');
-      saveBtn.textContent = 'Actualizar';
-      saveBtn.onclick = function() {
-        guest.nombre = document.getElementById('newNombre').value.trim();
-        guest.apellido = document.getElementById('newApellido').value.trim();
-        guest.entrada = document.getElementById('newEntrada').value.trim();
-        guest.monto = parseFloat(document.getElementById('newMonto').value) || 0;
-        saveGuests();
-        hideModal();
-        renderGuests();
-        resetModalButton();
-      };
+            if (updateError) {
+                console.error("Error updating list numbers:", updateError);
+            }
+        }
     }
 
-    async function toggleCheckin(id, currentStatus) {
-    const { error } = await clientSupabase
-        .from('inscriptos')
-        .update({ checkin: !currentStatus })
-        .eq('id', id); // eq = equals (donde id sea igual a id)
-
-    if (!error) renderGuests();
-}
-
-async function deleteGuest(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar a este inscripto?')) {
+    /**
+     * Main function to fetch, filter, sort, and render the guest list.
+     * @param {boolean} shouldFetch - If true, fetches fresh data from Supabase. Otherwise, uses cached data.
+     */
+    async function renderGuests(shouldFetch = true) {
         showLoader();
         try {
-            const { error } = await clientSupabase.from('inscriptos').delete().eq('id', id);
-            if (error) throw error;
-            
-            // Simplemente refresca la lista. El número se recalculará solo.
-            renderGuests();
-        } catch (error) {
-            console.error("Error al borrar:", error);
-            alert("No se pudo eliminar el inscripto: " + error.message);
+            if (shouldFetch) {
+                const { data, error } = await clientSupabase
+                    .from('inscriptos')
+                    .select('*');
+                if (error) throw error;
+                allGuests = data; // Update cache
+            }
+
+            // Client-side sorting
+            let displayData = [...allGuests].sort((a, b) => {
+                const valA = a[currentSortKey];
+                const valB = b[currentSortKey];
+                let comparison = 0;
+                if (valA > valB) comparison = 1;
+                else if (valA < valB) comparison = -1;
+                return currentSortAsc ? comparison : comparison * -1;
+            });
+
+            const search = document.getElementById('search').value.trim().toLowerCase();
+            const checkinFilter = document.getElementById('checkinFilter').value;
+
+            const filtered = displayData.filter(g => {
+                const fullName = `${g.nombre || ''} ${g.apellido || ''}`;
+                const matchName = fullName.toLowerCase().includes(search);
+                const matchCheck = checkinFilter === 'all' || String(g.checkin) === checkinFilter;
+                return matchName && matchCheck;
+            });
+
+            const body = document.getElementById('guestBody');
+            body.innerHTML = ''; 
+
+            document.getElementById('stats').textContent = `Mostrando ${filtered.length} de ${allGuests.length} inscriptos.`;
+
+            filtered.forEach(g => {
+                const row = document.createElement('div');
+                row.className = `border-b border-[#ddd5c7] ${g.checkin ? 'bg-green-100/70' : 'bg-white/70'}`;
+                
+                const registrationDate = new Date(g.created_at).toLocaleDateString();
+                const receiptButtonDesktop = g.comprobante_url ? `<button title="Ver Comprobante" onclick="event.stopPropagation(); viewReceipt('${g.comprobante_url}')">📄</button>` : `<button title="Cargar Comprobante" onclick="event.stopPropagation(); uploadReceipt(${g.id})">📎</button>`;
+                const receiptButtonMobile = g.comprobante_url ? `<button onclick="event.stopPropagation(); viewReceipt('${g.comprobante_url}')" class="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs">📄 Ver</button>` : `<button onclick="event.stopPropagation(); uploadReceipt(${g.id})" class="px-3 py-1 bg-gray-200 rounded text-xs">📎 Cargar</button>`;
+                const editButtonMobile = `<button onclick="event.stopPropagation(); editGuest(${g.id})" class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">✏️ Editar</button>`;
+                const deleteButtonMobile = `<button onclick="event.stopPropagation(); deleteGuest(${g.id})" class="px-3 py-1 bg-red-100 text-red-800 rounded text-xs">🗑️ Borrar</button>`;
+
+                row.innerHTML = `
+                    <div class="collapsible">
+                        <div class="flex items-center w-full text-center cursor-pointer sm:cursor-default" onclick="this.parentElement.classList.toggle('expanded')">
+                            <div class="p-4 flex justify-between items-center sm:hidden w-full">
+                                <div>
+                                    <p class="font-bold text-left">${g.nombre} ${g.apellido}</p>
+                                    <p class="text-xs text-gray-500 text-left">N° ${g.numero_lista || 'N/A'}</p>
+                                </div>
+                                <svg class="chevron w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <div class="hidden sm:flex sm:w-full sm:items-center text-sm">
+                                <div class="py-3 px-2 sm:w-[5%]">${g.numero_lista || 'N/A'}</div>
+                                <div class="py-3 px-2 sm:w-[18%] text-left">${g.nombre}</div>
+                                <div class="py-3 px-2 sm:w-[18%] text-left">${g.apellido}</div>
+                                <div class="py-3 px-2 sm:w-[15%]">${g.entrada}</div>
+                                <div class="py-3 px-2 sm:w-[10%]">$${g.monto}</div>
+                                <div class="py-3 px-2 sm:w-[15%]">${registrationDate}</div>
+                                <div class="py-3 px-2 sm:w-[5%]"><input type="checkbox" onclick="event.stopPropagation()" onchange="toggleCheckin(${g.id}, ${g.checkin})" ${g.checkin ? 'checked' : ''}></div>
+                                <div class="py-3 px-2 sm:w-[14%] flex justify-center gap-4">
+                                    ${receiptButtonDesktop}
+                                    <button title="Editar" onclick="event.stopPropagation(); editGuest(${g.id})">✏️</button>
+                                    <button title="Borrar" onclick="event.stopPropagation(); deleteGuest(${g.id})">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="details-content sm:hidden">
+                            <div class="p-4 border-t border-gray-200 text-left text-sm">
+                                <div class="grid grid-cols-2 gap-y-2 gap-x-4 items-center">
+                                    <div class="font-semibold">Tipo Entrada:</div><div>${g.entrada}</div>
+                                    <div class="font-semibold">Monto:</div><div>$${g.monto}</div>
+                                    <div class="font-semibold">Fecha Reg.:</div><div>${registrationDate}</div>
+                                    <div class="font-semibold">Check-in:</div><div><input type="checkbox" onchange="toggleCheckin(${g.id}, ${g.checkin})" ${g.checkin ? 'checked' : ''}></div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2 justify-start">
+                                    ${receiptButtonMobile}
+                                    ${editButtonMobile}
+                                    ${deleteButtonMobile}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                body.appendChild(row);
+            });
+        } catch (err) {
+            console.error("Failed to render guests:", err);
+            alert("Error al mostrar la lista de inscriptos.");
         } finally {
             hideLoader();
         }
     }
-}
-    function downloadExcel() {
-      // --- MODIFICADO: Añadir columna "Comprobante" al CSV ---
-      let csvContent = 'ID,Nombre,Apellido,Tipo Entrada,Monto,Fecha Registro,Check-in,Comprobante\n';
-      guests.forEach(g => {
-        const row = [
-            g.id, g.nombre, g.apellido, g.entrada, g.monto, g.fecha, g.checkin,
-            g.comprobante ? 'Si' : 'No'
-        ].join(',');
-        csvContent += row + '\n';
-      });
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'inscriptos.csv');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    // --- CRUD and other Actions ---
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      showModal('Nuevo Inscripto');
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.textContent = 'Guardar';
+      saveBtn.onclick = addGuest;
+    });
+
+    async function addGuest() {
+        const newGuestData = {
+            nombre: document.getElementById('newNombre').value.trim(),
+            apellido: document.getElementById('newApellido').value.trim(),
+            entrada: document.getElementById('newEntrada').value.trim() || 'General',
+            monto: parseFloat(document.getElementById('newMonto').value) || 0,
+            checkin: false
+        };
+
+        if (!newGuestData.nombre || !newGuestData.apellido) {
+            alert('El nombre y el apellido son obligatorios.');
+            return;
+        }
+
+        showLoader();
+        try {
+            const { error } = await clientSupabase.from('inscriptos').insert(newGuestData);
+            if (error) throw error;
+            await reordenarNumerosLista();
+            hideModal();
+            renderGuests(true); // Fetch fresh data
+        } catch (error) {
+            console.error("Error adding guest:", error);
+            alert("No se pudo agregar el inscripto: " + error.message);
+        } finally {
+            hideLoader();
+        }
     }
 
-    document.getElementById('search').addEventListener('input', renderGuests);
-    document.getElementById('checkinFilter').addEventListener('change', renderGuests);
-    window.addEventListener('load', renderGuests);
+    async function editGuest(id) {
+        const guest = allGuests.find(g => g.id === id);
+        if (!guest) {
+            alert("No se pudo encontrar el inscripto para editar.");
+            return;
+        }
+        
+        showModal('Editar Inscripto');
+        document.getElementById('newNombre').value = guest.nombre;
+        document.getElementById('newApellido').value = guest.apellido;
+        document.getElementById('newEntrada').value = guest.entrada;
+        document.getElementById('newMonto').value = guest.monto;
+
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.textContent = 'Actualizar';
+        saveBtn.onclick = async function() {
+            const updatedData = {
+                nombre: document.getElementById('newNombre').value.trim(),
+                apellido: document.getElementById('newApellido').value.trim(),
+                entrada: document.getElementById('newEntrada').value.trim(),
+                monto: parseFloat(document.getElementById('newMonto').value) || 0,
+            };
+
+            if (!updatedData.nombre || !updatedData.apellido) {
+                alert('El nombre y el apellido son obligatorios.');
+                return;
+            }
+
+            showLoader();
+            try {
+                const { error: updateError } = await clientSupabase.from('inscriptos').update(updatedData).eq('id', id);
+                if (updateError) throw updateError;
+                hideModal();
+                renderGuests(true); // Fetch fresh data
+            } catch (err) {
+                console.error("Error updating guest:", err);
+                alert("No se pudo actualizar el inscripto: " + err.message);
+            } finally {
+                hideLoader();
+            }
+        };
+    }
+
+    async function deleteGuest(id) {
+        showConfirmModal('¿Estás seguro de que quieres eliminar a este inscripto? Esta acción no se puede deshacer.', async () => {
+            showLoader();
+            try {
+                const { error } = await clientSupabase.from('inscriptos').delete().eq('id', id);
+                if (error) throw error;
+                await reordenarNumerosLista();
+                renderGuests(true); // Fetch fresh data
+            } catch (error) {
+                console.error("Error deleting guest:", error);
+                alert("No se pudo eliminar el inscripto: " + error.message);
+            } finally {
+                hideLoader();
+            }
+        });
+    }
+
+    async function toggleCheckin(id, currentStatus) {
+        const { error } = await clientSupabase.from('inscriptos').update({ checkin: !currentStatus }).eq('id', id);
+        if (error) {
+            console.error("Check-in error:", error);
+        } else {
+            // Update local cache to reflect change instantly
+            const guest = allGuests.find(g => g.id === id);
+            if (guest) guest.checkin = !currentStatus;
+            renderGuests(false); // Re-render without fetching
+        }
+    }
+
+    function viewReceipt(url) {
+        window.open(url, '_blank');
+    }
+
+    async function uploadReceipt(id) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,application/pdf';
+
+        input.onchange = async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showLoader();
+            try {
+                const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                const filePath = `public/${id}-${Date.now()}-${cleanFileName}`;
+
+                const { data: uploadData, error: uploadError } = await clientSupabase.storage.from('comprobantes').upload(filePath, file);
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = clientSupabase.storage.from('comprobantes').getPublicUrl(uploadData.path);
+
+                const { error: updateError } = await clientSupabase.from('inscriptos').update({ comprobante_url: urlData.publicUrl }).eq('id', id);
+                if (updateError) throw updateError;
+
+                renderGuests(true); // Fetch fresh data
+            } catch (error) {
+                console.error("Error in upload process:", error);
+                alert("Hubo un error al subir el comprobante: " + error.message);
+            } finally {
+                hideLoader();
+            }
+        };
+        input.click();
+    }
+
+    async function downloadExcel() {
+        showLoader();
+        try {
+            const { data: guestsToDownload, error } = await clientSupabase.from('inscriptos').select('*').order('numero_lista', { ascending: true });
+            if (error) throw error;
+            
+            let csvContent = 'N° Lista,Nombre,Apellido,Tipo Entrada,Monto,Fecha Registro,Check-in,URL Comprobante\n';
+            guestsToDownload.forEach(g => {
+                const registrationDate = new Date(g.created_at).toLocaleDateString();
+                const checkinStatus = g.checkin ? 'Si' : 'No';
+                const comprobanteUrl = g.comprobante_url || 'No';
+                const row = [
+                    g.numero_lista,
+                    `"${(g.nombre || '').replace(/"/g, '""')}"`,
+                    `"${(g.apellido || '').replace(/"/g, '""')}"`,
+                    `"${(g.entrada || '').replace(/"/g, '""')}"`,
+                    g.monto,
+                    registrationDate,
+                    checkinStatus,
+                    `"${comprobanteUrl}"`
+                ].join(',');
+                csvContent += row + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'inscriptos.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error("Error downloading Excel:", err);
+            alert("No se pudo generar el archivo CSV: " + err.message);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    // --- Initial Load and Event Listeners ---
+    document.getElementById('search').addEventListener('input', () => renderGuests(false));
+    document.getElementById('checkinFilter').addEventListener('change', () => renderGuests(false));
+    document.getElementById('sortFilter').addEventListener('change', applyMobileSort);
+    
+    window.addEventListener('load', async () => {
+        console.log("Page loaded. Ensuring list numbers are up to date...");
+        showLoader();
+        try {
+            await reordenarNumerosLista();
+            console.log("List numbers updated successfully.");
+        } catch (error) {
+            console.error("Could not update list numbers on load:", error);
+        }
+        // Initial render fetches data and populates the cache
+        renderGuests(true); 
+    });
   </script>
 
-</div>
 </body>
 </html>
