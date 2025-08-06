@@ -88,7 +88,7 @@
         <div id="stats" class="text-sm text-gray-600"></div>
     </div>
 
-    <div class="min-w-full text-sm shadow-md rounded-lg overflow-hidden">
+    <div class="min-w-full text-sm shadow-md rounded-lg overflow-hidden bg-white/50">
         <!-- Sticky Header for Desktop -->
         <div class="hidden sm:flex text-[#b08d57] bg-white text-xs border-b border-[#ddd5c7] text-center font-bold sticky top-0 z-10">
             <div class="py-2 px-2 sm:w-[5%] cursor-pointer" onclick="sortBy('numero_lista')">N° ⬍</div>
@@ -101,6 +101,9 @@
             <div class="py-2 px-2 sm:w-[14%]">ACCIONES</div>
         </div>
         <div id="guestBody" class="text-gray-700"></div>
+        <!-- Summary Footer for Desktop -->
+        <div id="guestFooter" class="hidden sm:flex text-[#3f3f3f] bg-gray-100 text-xs border-t-2 border-[#b08d57] text-center sticky bottom-0 z-10">
+        </div>
     </div>
   </div>
 
@@ -290,7 +293,9 @@
             });
 
             const body = document.getElementById('guestBody');
+            const footer = document.getElementById('guestFooter');
             body.innerHTML = ''; 
+            footer.innerHTML = '';
 
             document.getElementById('stats').textContent = `Mostrando ${filtered.length} de ${allGuests.length} inscriptos.`;
             
@@ -343,6 +348,24 @@
                 `;
                 body.appendChild(row);
             });
+
+            // Calculate and render footer totals
+            const totalMontoFiltrado = filtered.reduce((sum, g) => sum + (g.monto || 0), 0);
+            const totalAsistentesFiltrado = filtered.filter(g => g.checkin).length;
+
+            footer.innerHTML = `
+                <div class="py-3 px-2 sm:w-[5%]"></div>
+                <div class="py-3 px-2 sm:w-[36%] text-left font-bold" colspan="2">TOTALES (VISTA ACTUAL)</div>
+                <div class="py-3 px-2 sm:w-[15%]"></div>
+                <div class="py-3 px-2 sm:w-[10%] font-bold">$${totalMontoFiltrado.toFixed(2)}</div>
+                <div class="py-3 px-2 sm:w-[15%]"></div>
+                <div class="py-3 px-2 sm:w-[5%] font-bold">${totalAsistentesFiltrado}</div>
+                <div class="py-3 px-2 sm:w-[14%]"></div>
+            `;
+            const generalAsistentes = allGuests.filter(g => g.checkin).length;
+            document.getElementById('stats').textContent = `Mostrando ${filtered.length} de ${allGuests.length} inscriptos. | Asistentes: ${generalAsistentes} de ${allGuests.length}`;
+
+
         } catch (err) {
             console.error("Failed to render guests:", err);
             alert("Error al mostrar la lista de inscriptos.");
