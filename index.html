@@ -55,7 +55,28 @@
   </style>
 </head>
 <body class="bg-[#f9f7f4] text-[#3f3f3f] transition-colors duration-300">
-  <div class="max-w-6xl mx-auto px-4 py-6">
+  <!-- LOGIN VIEW -->
+  <div id="login" class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-sm bg-white/80 backdrop-blur rounded-xl shadow p-6">
+      <h2 class="text-xl font-semibold text-center mb-4">Acceso</h2>
+      <p class="text-sm text-gray-600 mb-4 text-center">Ingresá con tu usuario y contraseña.</p>
+      <form id="loginForm" class="flex flex-col gap-3">
+        <input id="email" type="email" required placeholder="Email"
+               class="border border-gray-300 rounded px-3 py-2">
+        <input id="password" type="password" required placeholder="Contraseña"
+               class="border border-gray-300 rounded px-3 py-2">
+        <button id="loginBtn" type="submit"
+                class="px-4 py-2 bg-[#b08d57] text-white font-semibold rounded shadow hover:bg-[#9a7945] transition-colors">
+          Ingresar
+        </button>
+      </form>
+      <p id="loginError" class="text-sm text-red-600 mt-3 hidden"></p>
+    </div>
+  </div>
+
+  <!-- APP VIEW (tu app actual va adentro de #app) -->
+  <div id="app" class="hidden">
+    <div class="max-w-6xl mx-auto px-4 py-6">
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-2">
       <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center">
         <input id="search" type="text" placeholder="Buscar por nombre o apellido" class="border border-gray-300 rounded px-3 py-2 text-sm" />
@@ -106,7 +127,13 @@
         </div>
     </div>
   </div>
-
+    <div class="hidden sm:flex gap-2">
+      <button onclick="downloadExcel()" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow hover:bg-[#9a7945] transition-colors">📥 Descargar Excel</button>
+      <button id="addBtn" class="px-4 py-2 bg-[#b08d57] text-white text-sm font-semibold rounded shadow hover:bg-[#9a7945] transition-colors">➕ Agregar</button>
+      <button id="logoutBtn" class="px-4 py-2 border border-gray-300 text-sm font-semibold rounded hover:bg-gray-50">Cerrar sesión</button>
+    </div>
+    
+    
   <!-- Add/Edit Modal -->
   <div id="modal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
     <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-md">
@@ -123,6 +150,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de registro -->
+<div id="registerModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
+  <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-sm">
+    <h3 class="text-lg font-semibold mb-4">Registrar nuevo usuario</h3>
+    <form id="registerForm" class="flex flex-col gap-3">
+      <input type="email" id="regEmail" placeholder="Email" required class="border border-gray-300 rounded px-3 py-2">
+      <input type="password" id="regPassword" placeholder="Contraseña" required class="border border-gray-300 rounded px-3 py-2">
+      <button type="submit" class="px-4 py-2 bg-[#b08d57] text-white rounded hover:bg-[#9a7945]">
+        Crear cuenta
+      </button>
+      <button type="button" id="closeRegisterBtn" class="px-4 py-2 border rounded">
+        Cancelar
+      </button>
+    </form>
+    <p id="registerError" class="text-sm text-red-600 mt-3 hidden"></p>
+    <p id="registerSuccess" class="text-sm text-green-600 mt-3 hidden"></p>
+  </div>
+</div>
 
   <!-- Confirmation Modal -->
   <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 invisible">
@@ -149,7 +195,8 @@
     +
   </button>
 
-  <script>
+  </div>
+    <script>
     const SUPABASE_URL = 'https://bduenhilcuxbevnhwsnj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkdWVuaGlsY3V4YmV2bmh3c25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNzUzMjYsImV4cCI6MjA2OTk1MTMyNn0.Xu_Y9c4FzkTaU6rW02veEVvsSX7396Zj3ArxV69ZrDE';
     const clientSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -547,16 +594,86 @@
     document.getElementById('checkinFilter').addEventListener('change', () => renderGuests(false));
     document.getElementById('sortFilter').addEventListener('change', applyMobileSort);
     
-    window.addEventListener('load', async () => {
-        showLoader();
-        try {
-            await reordenarNumerosLista();
-        } catch (error) {
-            console.error("Could not update list numbers on load:", error);
-        }
-        renderGuests(true); 
-    });
-  </script>
 
+    // Reemplazá tu window.load actual: ahora primero validamos auth
+    window.addEventListener('load', async () => {
+        await requireAuth(true);
+    });
+
+    function showApp() {
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+  }
+  function showLogin() {
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('login').classList.remove('hidden');
+  }
+
+  // Chequea sesión y enruta vistas
+  async function requireAuth(initial = false) {
+    const { data: { session } } = await clientSupabase.auth.getSession();
+    if (session) {
+      showApp();
+      // Solo cargar datos si es primera vez o si necesitás refrescar
+      if (initial) await reordenarNumerosLista().catch(()=>{});
+      await renderGuests(true);
+    } else {
+      showLogin();
+    }
+  }
+
+  // Login con email/password
+  async function handleLogin(e) {
+    e.preventDefault();
+    const email = (document.getElementById('email').value || '').trim();
+    const password = document.getElementById('password').value || '';
+    const errBox = document.getElementById('loginError');
+    errBox.classList.add('hidden');
+    showLoader();
+    try {
+      const { error } = await clientSupabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await requireAuth(true);
+    } catch (err) {
+      errBox.textContent = err.message || 'No se pudo iniciar sesión.';
+      errBox.classList.remove('hidden');
+    } finally {
+      hideLoader();
+    }
+  }
+
+  // Logout
+  async function handleLogout() {
+    showLoader();
+    try {
+      await clientSupabase.auth.signOut();
+      // Limpia caches en memoria si querés
+      allGuests = [];
+      showLogin();
+    } catch (err) {
+      alert('No se pudo cerrar sesión: ' + (err.message || err));
+    } finally {
+      hideLoader();
+    }
+  }
+
+  // Mantener la UI sincronizada con cambios de sesión (ej: expiración, logout en otra pestaña)
+  clientSupabase.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      showApp();
+      // Podés recargar datos si querés:
+      // renderGuests(true);
+    } else {
+      showLogin();
+    }
+  });
+
+  // Listeners para login/logout
+  document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  // El botón #logoutBtn existe dentro de #app; agregá el listener cuando el DOM ya lo tenga
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'logoutBtn') handleLogout();
+  });
+  </script>
 </body>
 </html>
